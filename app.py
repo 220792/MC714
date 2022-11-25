@@ -1,5 +1,6 @@
 from flask import Flask, request
 from logging.config import dictConfig
+import threading
 
 import os
 import lamport
@@ -37,4 +38,6 @@ def lamport_handler():
     return ('', 204)
 
 if __name__ == '__main__':
+    lamport_thread = threading.Thread(target=lamport.run_loop, args=[[5000], app.logger])
+    lamport_thread.start()
     app.run(host='0.0.0.0', port=os.environ['PORT'])
