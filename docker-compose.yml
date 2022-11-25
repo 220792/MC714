@@ -9,6 +9,7 @@ services:
       - "5001:5001"
     environment:
       PORT: "5001"
+      OTHER_NODES: "app-5002:5002"
 
   app-5002:
     image: python-docker:latest
@@ -17,3 +18,4 @@ services:
       - "5002:5002"
     environment:
       PORT: "5002"
+      OTHER_NODES: "app-5001:5001"

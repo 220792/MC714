@@ -38,6 +38,7 @@ def lamport_handler():
     return ('', 204)
 
 if __name__ == '__main__':
-    lamport_thread = threading.Thread(target=lamport.run_loop, args=[[5000], app.logger])
+    other_nodes = os.environ['OTHER_NODES'].split(',')
+    lamport_thread = threading.Thread(target=lamport.run_loop, args=[other_nodes, app.logger])
     lamport_thread.start()
     app.run(host='0.0.0.0', port=os.environ['PORT'])
