@@ -3,7 +3,7 @@ version: "3.8"
 services:
 
   app-5001:
-    image: python-docker:latest
+    image: lamport:latest
     container_name: node-5001
     ports:
       - "5001:5001"
@@ -12,7 +12,7 @@ services:
       OTHER_NODES: "app-5002:5002"
 
   app-5002:
-    image: python-docker:latest
+    image: lamport:latest
     container_name: node-5002
     ports:
       - "5002:5002"
