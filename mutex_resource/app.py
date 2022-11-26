@@ -1,9 +1,10 @@
 from flask import Flask, request
 from logging.config import dictConfig
-import threading
+from threading import Lock
+import time
+from random import randrange
 
 import os
-import lamport
 
 dictConfig(
     {
@@ -25,16 +26,19 @@ dictConfig(
 )
 
 app = Flask(__name__)
+thread_lock = Lock()
+global_counter = 0
 
-@app.route('/lamport', methods=["POST"])
-def lamport_handler():
-    received_timestamp = int(request.json['timestamp'])
-    lamport.receive_message(received_timestamp, app.logger)
-    
+@app.route('/save', methods=["POST"])
+def resource_handler():
+    global global_counter
+    received_value = int(request.json['value'])
+    with thread_lock:
+        global_counter += received_value
+
+    app.logger.info('Global counter: %s', global_counter)
+    time.sleep(randrange(5))
     return ('', 204)
 
 if __name__ == '__main__':
-    other_nodes = os.environ['OTHER_NODES'].split(',')
-    lamport_thread = threading.Thread(target=lamport.run_loop, args=[other_nodes, app.logger])
-    lamport_thread.start()
     app.run(host='0.0.0.0', port=os.environ['PORT'])
