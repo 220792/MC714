@@ -7,6 +7,60 @@ current_leader = ""
 running_election = False
 thread_lock = Lock()
 
+############ Election Functions ############
+
+# Checks node status
+def ping(node, logger):
+    url = f'http://{node}/'
+
+    logger.info('Pinging node: %s', node)
+
+    requests.get(url)      
+
+# Iterates over nodes with lower ports updating who is the leader
+def broadcast_leadership(lower_nodes, logger):
+    body = {'new_leader': str(current_leader)}
+
+    for node in lower_nodes:
+        try:    
+            logger.info('Annoucing leadership to node: %s', node)
+            requests.post(f'http://{node}/leader', json = body)
+        except:
+            continue
+
+
+# Iterates over nodes with higher ports
+#   - If any request succeeds, election continues and this node waits for the results
+#   - If no request succeed, this should be the leader
+def election(upper_nodes, lower_nodes, port, logger):
+    global current_leader
+    global running_election
+
+    with thread_lock:
+        logger.info('Running election...')
+        running_election = True
+
+    for node in upper_nodes:
+        try:
+            logger.info('Requesting election to node: %s', node)
+            requests.post(f'http://{node}/election')
+            return # If any request is successfull, I am not the leader and my part is done
+        except:
+            continue
+
+    # If no request is successfull, I am the leader
+    with thread_lock:
+        current_leader = port
+        running_election = False
+    
+    broadcast_leadership(lower_nodes, logger)
+
+############ Auxiliary Functions ############
+
+def split_nodes(available_nodes, port):
+    return ([node for node in available_nodes if int(node.split(":")[1]) < int(port)], \
+            [node for node in available_nodes if int(node.split(":")[1]) > int(port)])
+
 def set_leader(new_leader, logger):
     global current_leader
     global running_election
@@ -17,55 +71,8 @@ def set_leader(new_leader, logger):
         running_election = False
         current_leader = new_leader
 
-def ping(node, logger):
-    url = f'http://{node}/leader/ping'
-
-    logger.info('Pinging node: %s', node)
-
-    requests.get(url)      
-
-def broadcast_leadership(lower_nodes, logger):
-    for node in lower_nodes:
-        url = f'http://{node}/leader'
-        body = {'new_leader': str(current_leader)}
-
-        logger.info('Annoucing leadership to node: %s', node)
-
-        try:    
-            requests.post(url, json = body)
-        except:
-            logger.warn('Could not broadcast_leadership to node %s', node)
-    
-def election(upper_nodes, lower_nodes, port, logger):
-    global current_leader
-    global running_election
-
-    with thread_lock:
-        running_election = True
-    
-        logger.info('Running election...')
-
-    for node in upper_nodes:
-        url = f'http://{node}/leader/election'
-
-        logger.info('Requesting election to node: %s', node)
-
-        try:
-            requests.post(url)
-            return # If any request is successfull, I am not the leader
-        except:
-            continue
-
-    # If no request is successfull, I am the leader
-    with thread_lock:
-        current_leader = port
-    
-    broadcast_leadership(lower_nodes, logger)
-
-def split_nodes(available_nodes, port):
-    return ([node for node in available_nodes if int(node.split(":")[1]) < int(port)], \
-            [node for node in available_nodes if int(node.split(":")[1]) > int(port)])
-
+# Randomly checks the health of a live node of higher port number 
+# If dead node is the current_leader, an election should take place
 def run_loop(available_nodes, port, logger):
     global current_leader
     global running_election
@@ -85,11 +92,9 @@ def run_loop(available_nodes, port, logger):
         try:
             ping(node, logger)
         except:
-            logger.warn('Node %s did not answer, will be considered dead.', node)
-
             available_nodes.remove(node)
             (lower_nodes, upper_nodes) = split_nodes(available_nodes, port)
 
             if node == current_leader and not running_election:
-                logger.info('Dead node was the leader, will start election.')
+                logger.info('Node %s died and was the leader, will start election.', node)
                 election(upper_nodes, lower_nodes, port, logger)

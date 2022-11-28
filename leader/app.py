@@ -5,6 +5,12 @@ import threading
 import os
 import leader
 
+# creates a list of hosts of the service excluding the own instance
+def get_other_nodes(own_port):
+    all_ports = os.environ['ALL_PORTS'].split(',')
+    all_ports.remove(own_port)
+    return [f"app-{port}:{port}" for port in all_ports]
+
 dictConfig(
     {
         "version": 1,
@@ -27,8 +33,8 @@ dictConfig(
 app = Flask(__name__)
 
 @app.route('/')
-def hello_world():
-    return 'Hello, Docker!'
+def health_check_handler():
+    return ('UP', 200)
 
 @app.route('/leader', methods=["POST"])
 def leader_handler():
@@ -36,25 +42,21 @@ def leader_handler():
     leader.set_leader(new_leader, app.logger)
     return ('', 204)
 
-@app.route('/leader/ping', methods=["GET"])
-def leader_ping_handler():
-    return ('UP', 200)
-
-@app.route('/leader/election', methods=["POST"])
+@app.route('/election', methods=["POST"])
 def leader_election_handler():
-    port = os.environ['PORT']
-    other_nodes = os.environ['OTHER_NODES'].split(',')
-    upper_nodes = [node for node in other_nodes if int(node.split(":")[1]) > int(port)]
-    lower_nodes = [node for node in other_nodes if int(node.split(":")[1]) < int(port)]
+    own_port = os.environ['PORT']
+    other_nodes = get_other_nodes(own_port)
     
-    leader.election(upper_nodes, lower_nodes, port, app.logger)
+    (lower_nodes, upper_nodes) = leader.split_nodes(other_nodes, own_port)
+    
+    leader.election(upper_nodes, lower_nodes, own_port, app.logger)
     return ('', 204)
 
 if __name__ == '__main__':
-    port = os.environ['PORT']
-    other_nodes = os.environ['OTHER_NODES'].split(',')
+    own_port = os.environ['PORT']
+    other_nodes = get_other_nodes(own_port)
     
-    leader_thread = threading.Thread(target=leader.run_loop, args=[other_nodes, port, app.logger])
+    leader_thread = threading.Thread(target=leader.run_loop, args=[other_nodes, own_port, app.logger])
     leader_thread.start()
     
-    app.run(host='0.0.0.0', port=port)
+    app.run(host='0.0.0.0', port=own_port)

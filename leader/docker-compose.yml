@@ -1,7 +1,6 @@
 version: "3.8"
 
 services:
-
   app-5001:
     image: leader-docker:latest
     container_name: node-5001
@@ -9,7 +8,7 @@ services:
       - "5001:5001"
     environment:
       PORT: "5001"
-      OTHER_NODES: "app-5002:5002,app-5003:5003"
+      ALL_PORTS: "5001,5002,5003,5004,5005"
 
   app-5002:
     image: leader-docker:latest
@@ -18,7 +17,7 @@ services:
       - "5002:5002"
     environment:
       PORT: "5002"
-      OTHER_NODES: "app-5001:5001,app-5003:5003"
+      ALL_PORTS: "5001,5002,5003,5004,5005"
 
   app-5003:
     image: leader-docker:latest
@@ -27,4 +26,22 @@ services:
       - "5003:5003"
     environment:
       PORT: "5003"
-      OTHER_NODES: "app-5001:5001,app-5002:5002"
+      ALL_PORTS: "5001,5002,5003,5004,5005"
+
+  app-5004:
+    image: leader-docker:latest
+    container_name: node-5004
+    ports:
+      - "5004:5004"
+    environment:
+      PORT: "5004"
+      ALL_PORTS: "5001,5002,5003,5004,5005"
+
+  app-5005:
+    image: leader-docker:latest
+    container_name: node-5005
+    ports:
+      - "5005:5005"
+    environment:
+      PORT: "5005"
+      ALL_PORTS: "5001,5002,5003,5004,5005"
