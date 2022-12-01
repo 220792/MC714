@@ -9,7 +9,7 @@ services:
       - "5001:5001"
     environment:
       PORT: "5001"
-      OTHER_NODES: "app-5002:5002"
+      OTHER_NODES: "app-5002:5002,app-5003:5003"
 
   app-5002:
     image: lamport:latest
@@ -18,4 +18,13 @@ services:
       - "5002:5002"
     environment:
       PORT: "5002"
-      OTHER_NODES: "app-5001:5001"
+      OTHER_NODES: "app-5001:5001,app-5003:5003"
+
+  app-5003:
+    image: lamport:latest
+    container_name: node-5003
+    ports:
+      - "5003:5003"
+    environment:
+      PORT: "5003"
+      OTHER_NODES: "app-5001:5001,app-5002:5002"
