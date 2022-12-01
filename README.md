@@ -25,3 +25,8 @@ Para executar os algoritmos é necessário ter [Docker](https://docs.docker.com/
 6. Acompanhe os logs
 
 ## Eleição de Líder
+
+1. Entre na pasta correta: `cd leader`
+2. Builde a imagem da aplicação: `docker build . -t leader-docker`
+3. Crie e execute os containers: `docker-compose up`
+4. Acompanhe os logs
